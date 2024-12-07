@@ -1,6 +1,9 @@
 using System.Diagnostics;
-using GoogleOAuthDemo.Models;
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+using GoogleOAuthDemo.Models;
 
 namespace GoogleOAuthDemo.Controllers
 {
