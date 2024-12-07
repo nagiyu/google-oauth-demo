@@ -1,21 +1,31 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.Linq;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddAuthentication()
-.AddCookie("Cookies")
-    .AddGoogle(googleOptions =>
-    {
-        googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-        googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-    });
+builder.Services.AddAuthentication(options =>
+{
+    // サインインスキームを Cookies に設定
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "Google";
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie() // Cookie 認証を追加
+.AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+});
 
-//builder.Services.AddAuthorization();
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -36,25 +46,35 @@ app.UseRouting();
 // 認証と認可ミドルウェア
 app.UseAuthentication(); // 必須: ユーザーを認証
 
-//app.Use(async (context, next) =>
-//{
-//    // 認証状態の確認と情報のログ出力
-//    if (context.User.Identity?.IsAuthenticated ?? false)
-//    {
-//        var claims = context.User.Claims;
-//        var email = claims.FirstOrDefault(c => c.Type == "email")?.Value;
-//        var name = claims.FirstOrDefault(c => c.Type == "name")?.Value;
+app.Use(async (context, next) =>
+{
+    // 認証状態の確認と情報のログ出力
+    if (context.User.Identity?.IsAuthenticated ?? false)
+    {
+        var claims = context.User.Claims;
 
-//        // 認証済みユーザー情報をコンソールに出力（デバッグ目的）
-//        System.IO.File.AppendAllText("output.log", $"{DateTime.Now} Logged in user: {name} ({email})\n");
-//    }
-//    else
-//    {
-//        System.IO.File.AppendAllText("output.log", $"{DateTime.Now} User is not authenticated.\n");
-//    }
+        // 既存スキーマにマッピングされたClaimを取得
+        var userId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+        var firstName = claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
+        var lastName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value;
+        var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
 
-//    await next();
-//});
+        System.IO.File.AppendAllText("output.log",
+            $"{DateTime.Now} User Authenticated:\n" +
+            $"- User ID: {userId}\n" +
+            $"- Email: {email}\n" +
+            $"- Full Name: {fullName}\n" +
+            $"- First Name: {firstName}\n" +
+            $"- Last Name: {lastName}\n\n");
+    }
+    else
+    {
+        System.IO.File.AppendAllText("output.log", $"{DateTime.Now} User is not authenticated.\n");
+    }
+
+    await next();
+});
 
 app.UseAuthorization(); // 必須: 認可チェック
 
