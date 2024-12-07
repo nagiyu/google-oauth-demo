@@ -1,0 +1,100 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Publish with dotnet
+      run: dotnet publish --configuration Release GoogleOAuthDemo/GoogleOAuthDemo.csproj
+
+    - name: Copy files
+      run: cp -r GoogleOAuthDemo/bin/Release/net8.0/publish containers/googleOAuthDemo/bin
+
+    # - name: Add .env
+    #   run: echo "${{ secrets.ENV }}" > containers/.env
+
+    - name: Update appsettings.json
+      run: echo '${{ secrets.APPSETTINGS }}' > containers/googleOAuthDemo/bin/appsettings.json
+
+    - name: Remove Nginx Settings in target path
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          sudo rm -rf /etc/nginx/sites-enabled/google-oauth-demo
+          sudo rm -rf /etc/nginx/sites-available/google-oauth-demo
+          sudo rm -rf ${{ secrets.TARGET_PATH }}/nginx
+
+    - name: Upload Nginx Settings to server
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: nginx/*
+        target: ${{ secrets.TARGET_PATH }}
+
+    - name: Replace nginx configuration and Reload nginx
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          sudo cp ${{ secrets.TARGET_PATH }}/nginx/google-oauth-demo /etc/nginx/sites-available/
+          sudo ln -s /etc/nginx/sites-available/google-oauth-demo /etc/nginx/sites-enabled/
+          sudo systemctl restart nginx
+
+    - name: Remove all files in target path
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          cd ${{ secrets.TARGET_PATH }}/containers
+          docker compose -f docker-compose.yml -p google_oauth_demo down
+          docker volume prune -f && docker image prune -f && docker builder prune -f
+          sudo rm -Rf *
+
+    - name: Upload artifact to server
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: containers/*
+        target: ${{ secrets.TARGET_PATH }}
+
+    - name: Recreate GoogleOAuthDemo
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          cd ${{ secrets.TARGET_PATH }}/containers
+          docker compose -f docker-compose.yml build --no-cache
+          docker compose -f docker-compose.yml -p google_oauth_demo up -d
