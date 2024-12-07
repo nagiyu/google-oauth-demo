@@ -59,13 +59,6 @@ app.UseAuthentication(); // 必須: ユーザーを認証
 
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/signin-google"))
-    {
-        // `redirect_uri`をログに出力
-        var redirectUri = context.Request.Query["redirect_uri"];
-        System.IO.File.AppendAllText("output.log", $"{DateTime.Now} Redirect URI: {redirectUri}\n");
-    }
-
     // 認証状態の確認と情報のログ出力
     if (context.User.Identity?.IsAuthenticated ?? false)
     {
