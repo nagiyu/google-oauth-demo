@@ -30,10 +30,8 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
-app.UseStaticFiles();
 
 // ミドルウェアの設定
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
