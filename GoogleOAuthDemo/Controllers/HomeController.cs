@@ -1,9 +1,8 @@
-using System.Diagnostics;
-
+using GoogleOAuthDemo.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-
-using GoogleOAuthDemo.Models;
+using System.Diagnostics;
 
 namespace GoogleOAuthDemo.Controllers
 {
@@ -24,6 +23,12 @@ namespace GoogleOAuthDemo.Controllers
         public IActionResult Privacy()
         {
             return View();
+        }
+
+        [Authorize]
+        public IActionResult Secret()
+        {
+            return Content("This is a secret message.");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
