@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: "google_oauth_demo"
     ports:
-      - "9018:443"
+      - "9018:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     volumes:
