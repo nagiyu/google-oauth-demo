@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "path": "./"
+        },
+    ],
+    "extensions": {
+        "recommendations": [
+            "donjayamanne.githistory",
+            "eamodio.gitlens",
+            "oderwat.indent-rainbow",
+            "github.vscode-pull-request-github",
+            "humao.rest-client",
+            "wmaurer.change-case",
+            "adpyke.vscode-sql-formatter",
+            "ms-vscode-remote.remote-ssh",
+        ]
+    },
+    "settings": {
+        "editor.renderWhitespace": "boundary"
+    },
+}
