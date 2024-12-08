@@ -22,8 +22,8 @@ builder.WebHost.ConfigureKestrel(options =>
         {
             // .pem ファイルを直接指定
             var certificate = X509Certificate2.CreateFromPemFile(
-                "/etc/letsencrypt/live/yourdomain.com/fullchain.pem",
-                "/etc/letsencrypt/live/yourdomain.com/privkey.pem"
+                "/etc/letsencrypt/live/demo-google-oauth.nagiyu.com/fullchain.pem",
+                "/etc/letsencrypt/live/demo-google-oauth.nagiyu.com/privkey.pem"
             );
 
             // Kestrel に証明書を設定
