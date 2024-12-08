@@ -1,12 +1,32 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 環境ごとの Kestrel 設定をロード
+builder.WebHost.ConfigureKestrel(options =>
+{
+    var environment = builder.Environment.EnvironmentName;
+
+    if (environment == "Production")
+    {
+        // 本番環境（Let’s Encrypt 証明書を使用）
+        options.ConfigureHttpsDefaults(httpsOptions =>
+        {
+            httpsOptions.ServerCertificate = new X509Certificate2(
+                "/etc/letsencrypt/live/demo-google-oauth.nagiyu.com/fullchain.pem",  // 本番の証明書パス
+                "/etc/letsencrypt/live/demo-google-oauth.nagiyu.com/privkey.pem"    // 本番の秘密鍵
+            );
+        });
+    }
+});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
