@@ -20,10 +20,14 @@ builder.WebHost.ConfigureKestrel(options =>
         // 本番環境（Let’s Encrypt 証明書を使用）
         options.ConfigureHttpsDefaults(httpsOptions =>
         {
-            httpsOptions.ServerCertificate = new X509Certificate2(
-                "/etc/letsencrypt/live/demo-google-oauth.nagiyu.com/fullchain.pem",  // 本番の証明書パス
-                "/etc/letsencrypt/live/demo-google-oauth.nagiyu.com/privkey.pem"    // 本番の秘密鍵
+            // .pem ファイルを直接指定
+            var certificate = X509Certificate2.CreateFromPemFile(
+                "/etc/letsencrypt/live/yourdomain.com/fullchain.pem",
+                "/etc/letsencrypt/live/yourdomain.com/privkey.pem"
             );
+
+            // Kestrel に証明書を設定
+            httpsOptions.ServerCertificate = certificate;
         });
     }
 });
