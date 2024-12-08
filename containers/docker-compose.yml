@@ -5,8 +5,10 @@ services:
       dockerfile: Dockerfile
     container_name: "google_oauth_demo"
     ports:
-      - "9018:8080"
+      - "9018:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=https://+:443 # Kestrel に HTTPS 用ポートを設定
     volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro # 証明書をコンテナにマウント（読み取り専用
       - ./googleOAuthDemo/bin:/app
