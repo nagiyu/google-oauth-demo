@@ -1,4 +1,5 @@
-﻿using Amazon.DynamoDBv2.Model;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.Model;
 using Common.Auth.Models;
 using Common.DynamoDB.Services;
 using Microsoft.Extensions.Configuration;
@@ -92,22 +93,47 @@ namespace Common.Auth.Services
                 GoogleUserId = googleUserId
             };
 
-            await Update(tableName, user);
+            await Add(tableName, user);
 
             return userId;
         }
 
+        /// <summary>
+        /// ユーザー情報を更新する
+        /// </summary>
+        /// <param name="user">ユーザー情報</param>
         public async Task UpdateUser<T>(T user) where T : UserAuthBase
         {
-            try
+            // user の全要素を properties に変換
+            var properties = new Dictionary<string, AttributeValueUpdate>();
+
+            // 全キーをループして properties に追加
+            foreach (var property in user.GetType().GetProperties())
             {
-                await Update(tableName, user);
+                // DynamoDB には UserId は含めない
+                if (property.Name == nameof(UserAuthBase.UserId))
+                {
+                    continue;
+                }
+
+                // プロパティの値を取得
+                var value = property.GetValue(user);
+
+                // プロパティの値が null または空文字列の場合はスキップ
+                if (value == null || string.IsNullOrEmpty(value.ToString()))
+                {
+                    continue;
+                }
+
+                // プロパティの値を AttributeValueUpdate に変換
+                properties.Add(property.Name, new AttributeValueUpdate
+                {
+                    Action = AttributeAction.PUT,
+                    Value = new AttributeValue { S = value.ToString() }
+                });
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while updating user: {ex.Message}");
-                throw;
-            }
+
+            await UpdateProperties(tableName, nameof(UserAuthBase.UserId), user.UserId.ToString(), properties);
         }
     }
 }

@@ -74,7 +74,7 @@ namespace Common.DynamoDB.Services
         /// </summary>
         /// <param name="tableName">テーブル名</param>
         /// <param name="item">アイテム</param>
-        protected async Task Update<T>(string tableName, T item)
+        protected async Task Add<T>(string tableName, T item)
         {
             var config = new DynamoDBOperationConfig
             {
@@ -83,5 +83,28 @@ namespace Common.DynamoDB.Services
 
             await context.SaveAsync(item, config);
         }
+
+        /// <summary>
+        /// 指定されたプロパティを更新する
+        /// </summary>
+        /// <param name="tableName">テーブル名</param>
+        /// <param name="keyName">キー名</param>
+        /// <param name="keyValue">キー値</param>
+        /// <param name="updates">更新するプロパティとその値の辞書</param>
+        protected async Task UpdateProperties(string tableName, string keyName, string keyValue, Dictionary<string, AttributeValueUpdate> updates)
+        {
+            var updateRequest = new UpdateItemRequest
+            {
+                TableName = tableName,
+                Key = new Dictionary<string, AttributeValue>
+                {
+                    { keyName, new AttributeValue { S = keyValue } }
+                },
+                AttributeUpdates = updates
+            };
+
+            await client.UpdateItemAsync(updateRequest);
+        }
+
     }
 }
