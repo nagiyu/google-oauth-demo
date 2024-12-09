@@ -25,7 +25,7 @@ namespace GoogleOAuthDemo.Controllers
             return View();
         }
 
-        [Authorize]
+        [Authorize(Policy = "App1Policy")]
         public IActionResult Secret()
         {
             return Content("This is a secret message.");

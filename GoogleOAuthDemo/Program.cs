@@ -1,14 +1,18 @@
+using App1Auth.Handlers;
+using Common.Auth.Services;
+using GoogleOAuthDemo.Middlewares;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Linq;
-using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// サービス登録
+builder.Services.AddSingleton<AuthService>();
 
 // 環境ごとの Kestrel 設定をロード
 builder.WebHost.ConfigureKestrel(options =>
@@ -49,7 +53,12 @@ builder.Services.AddAuthentication(options =>
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("App1Policy", policy => policy.Requirements.Add(new App1Requirement()));
+});
+
+builder.Services.AddSingleton<IAuthorizationHandler, App1AuthorizationHandler>();
 
 var app = builder.Build();
 
@@ -70,35 +79,7 @@ app.UseRouting();
 // 認証と認可ミドルウェア
 app.UseAuthentication(); // 必須: ユーザーを認証
 
-app.Use(async (context, next) =>
-{
-    // 認証状態の確認と情報のログ出力
-    if (context.User.Identity?.IsAuthenticated ?? false)
-    {
-        var claims = context.User.Claims;
-
-        // 既存スキーマにマッピングされたClaimを取得
-        var userId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-        var firstName = claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
-        var lastName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value;
-        var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-
-        System.IO.File.AppendAllText("output.log",
-            $"{DateTime.Now} User Authenticated:\n" +
-            $"- User ID: {userId}\n" +
-            $"- Email: {email}\n" +
-            $"- Full Name: {fullName}\n" +
-            $"- First Name: {firstName}\n" +
-            $"- Last Name: {lastName}\n\n");
-    }
-    else
-    {
-        System.IO.File.AppendAllText("output.log", $"{DateTime.Now} User is not authenticated.\n");
-    }
-
-    await next();
-});
+app.UseMiddleware<AuthenticationLoggingMiddleware>();
 
 app.UseAuthorization(); // 必須: 認可チェック
 
