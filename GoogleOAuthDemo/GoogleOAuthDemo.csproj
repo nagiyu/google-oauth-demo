@@ -10,4 +10,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Common.Auth\Common.Auth.csproj" />
+  </ItemGroup>
+
 </Project>
