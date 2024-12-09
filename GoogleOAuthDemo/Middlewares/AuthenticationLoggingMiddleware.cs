@@ -1,4 +1,5 @@
-﻿using Common.Auth.Services;
+﻿using Common.Auth.Models;
+using Common.Auth.Services;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace GoogleOAuthDemo.Middlewares
                 var claims = context.User.Claims;
 
                 // 既存スキーマにマッピングされたClaimを取得
-                var userId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var googleUserId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 var fullName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
                 var firstName = claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
                 var lastName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value;
@@ -36,16 +37,18 @@ namespace GoogleOAuthDemo.Middlewares
 
                 System.IO.File.AppendAllText("output.log",
                     $"{DateTime.Now} User Authenticated:\n" +
-                    $"- User ID: {userId}\n" +
+                    $"- User ID: {googleUserId}\n" +
                     $"- Email: {email}\n" +
                     $"- Full Name: {fullName}\n" +
                     $"- First Name: {firstName}\n" +
                     $"- Last Name: {lastName}\n\n");
 
-                if (!await authService.IsExistUserByGoogle(userId))
-                {
-                    await authService.AddUserByGoogle(userId);
-                }
+                var userId = await GetUserId(googleUserId);
+
+                var identity = new ClaimsIdentity(context.User.Identity);
+                identity.AddClaim(new Claim(nameof(UserAuthBase.UserId), userId.ToString()));
+
+                context.User = new ClaimsPrincipal(identity);
             }
             else
             {
@@ -53,6 +56,16 @@ namespace GoogleOAuthDemo.Middlewares
             }
 
             await _next(context);
+        }
+
+        private async Task<Guid> GetUserId(string googleUserId)
+        {
+            if (!await authService.IsExistUserByGoogle(googleUserId))
+            {
+                return await authService.AddUserByGoogle(googleUserId);
+            }
+
+            return Guid.Parse(await authService.GetUserIdByGoogle(googleUserId));
         }
     }
 }

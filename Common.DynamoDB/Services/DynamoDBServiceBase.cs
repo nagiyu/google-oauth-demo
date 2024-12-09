@@ -43,7 +43,15 @@ namespace Common.DynamoDB.Services
             context = new DynamoDBContext(client);
         }
 
-        protected async Task<bool> IsExist(string tableName, string indexName, string keyName, string keyValue)
+        /// <summary>
+        /// アイテムを取得する
+        /// </summary>
+        /// <param name="tableName">テーブル名</param>
+        /// <param name="indexName">インデックス名</param>
+        /// <param name="keyName">キー名</param>
+        /// <param name="keyValue">キー値</param>
+        /// <returns>アイテムのリスト</returns>
+        protected async Task<List<Dictionary<string, AttributeValue>>> GetItems(string tableName, string indexName, string keyName, string keyValue)
         {
             var queryRequest = new QueryRequest
             {
@@ -58,7 +66,7 @@ namespace Common.DynamoDB.Services
 
             var response = await client.QueryAsync(queryRequest);
 
-            return response.Items.Count > 0;
+            return response.Items;
         }
 
         /// <summary>
@@ -66,7 +74,7 @@ namespace Common.DynamoDB.Services
         /// </summary>
         /// <param name="tableName">テーブル名</param>
         /// <param name="item">アイテム</param>
-        protected async Task Add<T>(string tableName, T item)
+        protected async Task Update<T>(string tableName, T item)
         {
             var config = new DynamoDBOperationConfig
             {

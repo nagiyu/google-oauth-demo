@@ -1,6 +1,8 @@
+using App1Auth.Handlers;
 using Common.Auth.Services;
 using GoogleOAuthDemo.Middlewares;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,7 +53,12 @@ builder.Services.AddAuthentication(options =>
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("App1Policy", policy => policy.Requirements.Add(new App1Requirement()));
+});
+
+builder.Services.AddSingleton<IAuthorizationHandler, App1AuthorizationHandler>();
 
 var app = builder.Build();
 
